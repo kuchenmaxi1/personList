@@ -1,0 +1,23 @@
+body {
+  background-color: #f0f8ff;
+  color: #333;
+}
+.container {
+  margin-top: 50px;
+}
+h1 {
+  color: #007bff;
+}
+.btn {
+  margin-top: 10px;
+}
+#login {
+  margin-top: 50px;
+}
+.modal-header {
+  background-color: #007bff;
+  color: white;
+}
+.modal-body {
+  background-color: #e7f0fa;
+}

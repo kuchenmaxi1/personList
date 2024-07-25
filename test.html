@@ -36,6 +36,9 @@
       max-height: 200px;
       object-fit: cover;
     }
+    .form-section {
+      margin-bottom: 1.5rem;
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
@@ -49,7 +52,7 @@
     <h1 class="text-center">Personendatenbank</h1>
     <div id="login" class="text-center">
       <h2>Login</h2>
-      <input type="password" id="password" placeholder="Password">
+      <input type="password" id="password" placeholder="Password" class="form-control mb-2">
       <button id="loginButton" class="btn btn-primary">Login</button>
     </div>
     <div id="content" style="display:none;">
@@ -63,7 +66,7 @@
 
   <!-- Modal für Person hinzufügen/bearbeiten -->
   <div class="modal fade" id="personModal" tabindex="-1" aria-labelledby="personModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg"> <!-- Breiteres Modal -->
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="personModalLabel">Person hinzufügen/bearbeiten</h5>
@@ -72,19 +75,21 @@
         <div class="modal-body">
           <form id="personForm">
             <input type="hidden" id="personId">
-            <div class="mb-3">
+            
+            <!-- Basis Informationen -->
+            <div class="form-section">
               <label for="vorname" class="form-label">Vorname</label>
               <input type="text" class="form-control" id="vorname" required>
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="nachname" class="form-label">Nachname</label>
               <input type="text" class="form-control" id="nachname" required>
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="alter" class="form-label">Alter</label>
               <input type="number" class="form-control" id="alter" required>
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="geschlecht" class="form-label">Geschlecht</label>
               <select class="form-control" id="geschlecht" required>
                 <option value="">Wählen...</option>
@@ -92,30 +97,37 @@
                 <option value="weiblich">Weiblich</option>
               </select>
             </div>
-            <div class="mb-3">
+            
+            <!-- Dynamische zusätzliche Felder -->
+            <div id="additionalFields"></div>
+            
+            <!-- Crush oder Beziehung -->
+            <div class="form-section">
               <label for="crushBeziehung" class="form-label">Crush oder Beziehung</label>
-              <select class="form-control" id="crushBeziehung" required>
+              <select class="form-control" id="crushBeziehung">
                 <option value="">Wählen...</option>
                 <option value="crush">Crush</option>
                 <option value="beziehung">Beziehung</option>
               </select>
             </div>
             <div id="crushBeziehungFields" class="hidden">
-              <div class="mb-3">
+              <div class="form-section">
                 <label for="crushBeziehungAlt" class="form-label">Alt</label>
                 <input type="text" class="form-control" id="crushBeziehungAlt">
               </div>
-              <div class="mb-3">
+              <div class="form-section">
                 <label for="crushBeziehungAktuell" class="form-label">Aktuell</label>
                 <input type="text" class="form-control" id="crushBeziehungAktuell">
               </div>
             </div>
-            <div id="additionalFields"></div>
-            <div class="mb-3">
+            
+            <!-- Bild Upload -->
+            <div class="form-section">
               <label for="personImage" class="form-label">Bild hochladen</label>
               <input type="file" class="form-control" id="personImage" accept="image/*">
               <div id="imagePreview" class="mt-2"></div>
             </div>
+            
             <button type="submit" class="btn btn-primary">Speichern</button>
           </form>
         </div>
@@ -221,7 +233,7 @@
           sixpack: $('#sixpack').val(),
           muskeln: $('#muskeln').val(),
           jungfrau: $('#jungfrau').val(),
-          imageURL: $('#imagePreview img').attr('src') || '' // Füge URL des Bildes hinzu
+          imageURL: $('#imagePreview img').attr('src') || ''
         };
         if (formData.geschlecht === 'weiblich') {
           formData.busengroesse = $('#busengroesse').val();
@@ -240,62 +252,62 @@
         let fields = '';
         if (geschlecht === 'weiblich') {
           fields += `
-            <div class="mb-3">
+            <div class="form-section">
               <label for="busengroesse" class="form-label">Busengröße</label>
               <input type="text" class="form-control" id="busengroesse">
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="busenbetont" class="form-label">Busenbetont</label>
               <select class="form-control" id="busenbetont">
                 <option value="ja">Ja</option>
                 <option value="nein">Nein</option>
               </select>
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="vaginaBehaart" class="form-label">Vagina Behaart</label>
               <input type="text" class="form-control" id="vaginaBehaart">
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="hinterteil" class="form-label">Hinterteil</label>
               <input type="text" class="form-control" id="hinterteil">
             </div>`;
         } else if (geschlecht === 'männlich') {
           fields += `
-            <div class="mb-3">
+            <div class="form-section">
               <label for="penislaenge" class="form-label">Penis Länge</label>
               <input type="text" class="form-control" id="penislaenge">
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="penisbehaarung" class="form-label">Penis Behaarung</label>
               <input type="text" class="form-control" id="penisbehaarung">
             </div>
-            <div class="mb-3">
+            <div class="form-section">
               <label for="hinterteil" class="form-label">Hinterteil</label>
               <input type="text" class="form-control" id="hinterteil">
             </div>`;
         }
         fields += `
-          <div class="mb-3">
+          <div class="form-section">
             <label for="pubertät" class="form-label">Pubertät</label>
             <input type="text" class="form-control" id="pubertät">
           </div>
-          <div class="mb-3">
+          <div class="form-section">
             <label for="aussehen" class="form-label">Aussehen</label>
             <input type="text" class="form-control" id="aussehen">
           </div>
-          <div class="mb-3">
+          <div class="form-section">
             <label for="allgemeineStatur" class="form-label">Allgemeine Statur</label>
             <input type="text" class="form-control" id="allgemeineStatur">
           </div>
-          <div class="mb-3">
+          <div class="form-section">
             <label for="sixpack" class="form-label">Sixpack</label>
             <input type="text" class="form-control" id="sixpack">
           </div>
-          <div class="mb-3">
+          <div class="form-section">
             <label for="muskeln" class="form-label">Muskeln</label>
             <input type="text" class="form-control" id="muskeln">
           </div>
-          <div class="mb-3">
+          <div class="form-section">
             <label for="jungfrau" class="form-label">Jungfrau</label>
             <select class="form-control" id="jungfrau">
               <option value="ja">Ja</option>

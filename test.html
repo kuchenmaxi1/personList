@@ -39,6 +39,10 @@
     .form-section {
       margin-bottom: 1.5rem;
     }
+    marquee {
+      display: block;
+      margin: 20px 0;
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
@@ -52,7 +56,8 @@
     <h1 class="text-center">Personendatenbank</h1>
     <div id="login" class="text-center">
       <h2>Login</h2>
-      <input type="password" id="password" placeholder="Password" class="form-control mb-2">
+      <input type="text" id="username" placeholder="Benutzername" class="form-control mb-2">
+      <input type="password" id="password" placeholder="Passwort" class="form-control mb-2">
       <button id="loginButton" class="btn btn-primary">Login</button>
     </div>
     <div id="content" style="display:none;">
@@ -151,15 +156,23 @@
     firebase.initializeApp(firebaseConfig);
 
     $(document).ready(function () {
-      const password = "MNLHLj!";
+      const users = {
+        'Carla.Sehn': 'carlaPasswort',
+        'Admin.Max': 'adminPasswort'
+      };
+      let currentUser = null;
 
       $('#loginButton').click(function () {
-        if ($('#password').val() === password) {
+        const username = $('#username').val();
+        const password = $('#password').val();
+
+        if (users[username] === password) {
+          currentUser = username;
           $('#login').hide();
           $('#content').show();
           loadPersons();
         } else {
-          alert('Falsches Passwort');
+          alert('Falscher Benutzername oder Passwort');
         }
       });
 
@@ -233,18 +246,21 @@
           sixpack: $('#sixpack').val(),
           muskeln: $('#muskeln').val(),
           jungfrau: $('#jungfrau').val(),
+          mitWem: $('#mitWem').val(), // Dynamisches Feld für „mit wem“
           imageURL: $('#imagePreview img').attr('src') || ''
         };
+
         if (formData.geschlecht === 'weiblich') {
-      formData.busengroesse = $('#busengroesse').val();
-      formData.busenbetont = $('#busenbetont').val();
-      formData.vaginaBehaart = $('#vaginaBehaart').val();
-      formData.hinterteil = $('#hinterteil').val();
-    } else if (formData.geschlecht === 'männlich') {
-      formData.penislänge = $('#penislaenge').val();
-      formData.penisbehaarung = $('#penisbehaarung').val();
-      formData.hinterteil = $('#hinterteil').val();
-    }
+          formData.busengroesse = $('#busengroesse').val();
+          formData.busenbetont = $('#busenbetont').val();
+          formData.vaginaBehaart = $('#vaginaBehaart').val();
+          formData.hinterteil = $('#hinterteil').val();
+        } else if (formData.geschlecht === 'männlich') {
+          formData.penislänge = $('#penislaenge').val();
+          formData.penisbehaarung = $('#penisbehaarung').val();
+          formData.hinterteil = $('#hinterteil').val();
+        }
+
         return formData;
       }
 
@@ -270,6 +286,17 @@
             <div class="form-section">
               <label for="hinterteil" class="form-label">Hinterteil</label>
               <input type="text" class="form-control" id="hinterteil">
+            </div>
+            <div class="form-section">
+              <label for="jungfrau" class="form-label">Jungfrau</label>
+              <select class="form-control" id="jungfrau">
+                <option value="ja">Ja</option>
+                <option value="nein">Nein</option>
+              </select>
+            </div>
+            <div id="mitWemField" class="form-section hidden">
+              <label for="mitWem" class="form-label">Mit wem</label>
+              <input type="text" class="form-control" id="mitWem">
             </div>`;
         } else if (geschlecht === 'männlich') {
           fields += `
@@ -284,8 +311,20 @@
             <div class="form-section">
               <label for="hinterteil" class="form-label">Hinterteil</label>
               <input type="text" class="form-control" id="hinterteil">
+            </div>
+            <div class="form-section">
+              <label for="jungfrau" class="form-label">Jungfrau</label>
+              <select class="form-control" id="jungfrau">
+                <option value="ja">Ja</option>
+                <option value="nein">Nein</option>
+              </select>
+            </div>
+            <div id="mitWemField" class="form-section hidden">
+              <label for="mitWem" class="form-label">Mit wem</label>
+              <input type="text" class="form-control" id="mitWem">
             </div>`;
         }
+
         fields += `
           <div class="form-section">
             <label for="pubertät" class="form-label">Pubertät</label>
@@ -306,15 +345,17 @@
           <div class="form-section">
             <label for="muskeln" class="form-label">Muskeln</label>
             <input type="text" class="form-control" id="muskeln">
-          </div>
-          <div class="form-section">
-            <label for="jungfrau" class="form-label">Jungfrau</label>
-            <select class="form-control" id="jungfrau">
-              <option value="ja">Ja</option>
-              <option value="nein">Nein</option>
-            </select>
           </div>`;
         $('#additionalFields').html(fields);
+
+        // Dynamisches Feld „mit wem“ ein- oder ausblenden
+        $('#jungfrau').change(function () {
+          if ($(this).val() === 'ja') {
+            $('#mitWemField').removeClass('hidden');
+          } else {
+            $('#mitWemField').addClass('hidden');
+          }
+        });
       }
 
       function clearForm() {
@@ -330,6 +371,7 @@
         $('#crushBeziehungFields').addClass('hidden');
         $('#personImage').val('');
         $('#imagePreview').html('');
+        $('#mitWemField').addClass('hidden');
       }
 
       function loadPersons() {
@@ -337,17 +379,39 @@
           const persons = snapshot.val();
           let personsList = '';
           for (let id in persons) {
-            personsList += `
+            const person = persons[id];
+            let personDetails = `
               <div class="card mb-3">
                 <div class="card-body">
-                  <h5 class="card-title">${persons[id].vorname} ${persons[id].nachname}</h5>
-                  <p class="card-text">Alter: ${persons[id].alter}</p>
-                  <p class="card-text">Geschlecht: ${persons[id].geschlecht}</p>
-                  ${persons[id].imageURL ? `<img src="${persons[id].imageURL}" class="card-img" alt="Personenbild">` : ''}
-                  <button class="btn btn-primary" onclick="editPerson('${id}')">Bearbeiten</button>
-                  <button class="btn btn-danger" onclick="deletePerson('${id}')">Löschen</button>
-                </div>
-              </div>`;
+                  <h5 class="card-title">${person.vorname} ${person.nachname}</h5>
+                  <p class="card-text">Alter: ${person.alter}</p>
+                  <p class="card-text">Geschlecht: ${person.geschlecht}</p>`;
+                
+            if (currentUser === 'Admin.Max') {
+              personDetails += `
+                <p class="card-text">Crush/Beziehung: ${person.crushBeziehung || 'Nicht angegeben'}</p>
+                <p class="card-text">Crush/Beziehung Alt: ${person.crushBeziehungAlt || 'Nicht angegeben'}</p>
+                <p class="card-text">Crush/Beziehung Aktuell: ${person.crushBeziehungAktuell || 'Nicht angegeben'}</p>
+                <p class="card-text">Jungfrau: ${person.jungfrau || 'Nicht angegeben'}</p>
+                <p class="card-text">Mit wem: ${person.mitWem || 'Nicht angegeben'}</p>
+                <p class="card-text">Busengröße: ${person.busengroesse || 'Nicht angegeben'}</p>
+                <p class="card-text">Busenbetont: ${person.busenbetont || 'Nicht angegeben'}</p>
+                <p class="card-text">Vagina Behaart: ${person.vaginaBehaart || 'Nicht angegeben'}</p>
+                <p class="card-text">Hinterteil: ${person.hinterteil || 'Nicht angegeben'}</p>
+                <p class="card-text">Penis Länge: ${person.penislänge || 'Nicht angegeben'}</p>
+                <p class="card-text">Penis Behaarung: ${person.penisbehaarung || 'Nicht angegeben'}</p>`;
+            } else {
+              personDetails += `
+                <marquee>Erst überreden.</marquee>`;
+            }
+
+            personDetails += `
+                ${person.imageURL ? `<img src="${person.imageURL}" class="card-img" alt="Personenbild">` : ''}
+                <button class="btn btn-primary" onclick="editPerson('${id}')">Bearbeiten</button>
+                <button class="btn btn-danger" onclick="deletePerson('${id}')">Löschen</button>
+              </div>
+            </div>`;
+            personsList += personDetails;
           }
           $('#personsList').html(personsList);
         });

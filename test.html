@@ -236,15 +236,15 @@
           imageURL: $('#imagePreview img').attr('src') || ''
         };
         if (formData.geschlecht === 'weiblich') {
-          formData.busengroesse = $('#busengroesse').val();
-          formData.busenbetont = $('#busenbetont').val();
-          formData.vaginaBehaart = $('#vaginaBehaart').val();
-          formData.hinterteil = $('#hinterteil').val();
-        } else if (formData.geschlecht === 'männlich') {
-          formData.penislänge = $('#penislaenge').val();
-          formData.penisbehaarung = $('#penisbehaarung').val();
-          formData.hinterteil = $('#hinterteil').val();
-        }
+      formData.busengroesse = $('#busengroesse').val();
+      formData.busenbetont = $('#busenbetont').val();
+      formData.vaginaBehaart = $('#vaginaBehaart').val();
+      formData.hinterteil = $('#hinterteil').val();
+    } else if (formData.geschlecht === 'männlich') {
+      formData.penislänge = $('#penislaenge').val();
+      formData.penisbehaarung = $('#penisbehaarung').val();
+      formData.hinterteil = $('#hinterteil').val();
+    }
         return formData;
       }
 
@@ -343,9 +343,6 @@
                   <h5 class="card-title">${persons[id].vorname} ${persons[id].nachname}</h5>
                   <p class="card-text">Alter: ${persons[id].alter}</p>
                   <p class="card-text">Geschlecht: ${persons[id].geschlecht}</p>
-                  <p class="card-text">Crush/Beziehung: ${persons[id].crushBeziehung}</p>
-                  <p class="card-text">Crush Alt: ${persons[id].crushBeziehungAlt}</p>
-                  <p class="card-text">Crush Aktuell: ${persons[id].crushBeziehungAktuell}</p>
                   ${persons[id].imageURL ? `<img src="${persons[id].imageURL}" class="card-img" alt="Personenbild">` : ''}
                   <button class="btn btn-primary" onclick="editPerson('${id}')">Bearbeiten</button>
                   <button class="btn btn-danger" onclick="deletePerson('${id}')">Löschen</button>

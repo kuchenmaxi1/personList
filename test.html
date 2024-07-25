@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personendatenbank</title>
+  <style>
+    body {
+      background-color: #f0f8ff;
+      color: #333;
+    }
+    .container {
+      margin-top: 50px;
+    }
+    h1 {
+      color: #007bff;
+    }
+    .btn {
+      margin-top: 10px;
+    }
+    #login {
+      margin-top: 50px;
+    }
+    .modal-header {
+      background-color: #007bff;
+      color: white;
+    }
+    .modal-body {
+      background-color: #e7f0fa;
+    }
+    .hidden {
+      display: none;
+    }
+    .card-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-center">Personendatenbank</h1>
+    <div id="login" class="text-center">
+      <h2>Login</h2>
+      <input type="password" id="password" placeholder="Password">
+      <button id="loginButton" class="btn btn-primary">Login</button>
+    </div>
+    <div id="content" style="display:none;">
+      <div class="text-center">
+        <button id="addPersonButton" class="btn btn-success">Person hinzufügen</button>
+        <input type="text" id="searchInput" placeholder="Suche nach Namen" class="form-control mt-2">
+      </div>
+      <div id="personsList" class="mt-4"></div>
+    </div>
+  </div>
+
+  <!-- Modal für Person hinzufügen/bearbeiten -->
+  <div class="modal fade" id="personModal" tabindex="-1" aria-labelledby="personModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> <!-- Breiteres Modal -->
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="personModalLabel">Person hinzufügen/bearbeiten</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="personForm">
+            <input type="hidden" id="personId">
+            <div class="mb-3">
+              <label for="vorname" class="form-label">Vorname</label>
+              <input type="text" class="form-control" id="vorname" required>
+            </div>
+            <div class="mb-3">
+              <label for="nachname" class="form-label">Nachname</label>
+              <input type="text" class="form-control" id="nachname" required>
+            </div>
+            <div class="mb-3">
+              <label for="alter" class="form-label">Alter</label>
+              <input type="number" class="form-control" id="alter" required>
+            </div>
+            <div class="mb-3">
+              <label for="geschlecht" class="form-label">Geschlecht</label>
+              <select class="form-control" id="geschlecht" required>
+                <option value="">Wählen...</option>
+                <option value="männlich">Männlich</option>
+                <option value="weiblich">Weiblich</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="crushBeziehung" class="form-label">Crush oder Beziehung</label>
+              <select class="form-control" id="crushBeziehung" required>
+                <option value="">Wählen...</option>
+                <option value="crush">Crush</option>
+                <option value="beziehung">Beziehung</option>
+              </select>
+            </div>
+            <div id="crushBeziehungFields" class="hidden">
+              <div class="mb-3">
+                <label for="crushBeziehungAlt" class="form-label">Alt</label>
+                <input type="text" class="form-control" id="crushBeziehungAlt">
+              </div>
+              <div class="mb-3">
+                <label for="crushBeziehungAktuell" class="form-label">Aktuell</label>
+                <input type="text" class="form-control" id="crushBeziehungAktuell">
+              </div>
+            </div>
+            <div id="additionalFields"></div>
+            <div class="mb-3">
+              <label for="personImage" class="form-label">Bild hochladen</label>
+              <input type="file" class="form-control" id="personImage" accept="image/*">
+              <div id="imagePreview" class="mt-2"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Speichern</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFAlpxUK26XJqZ86kBYhofJlapxh6Ajds",
+      authDomain: "maxrat-5d14a.firebaseapp.com",
+      databaseURL: "https://maxrat-5d14a-default-rtdb.firebaseio.com",
+      projectId: "maxrat-5d14a",
+      storageBucket: "maxrat-5d14a.appspot.com",
+      messagingSenderId: "908892453787",
+      appId: "1:908892453787:web:abe94d1faea8b80ef1bf3e",
+      measurementId: "G-E9BP785SF5"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    $(document).ready(function () {
+      const password = "MNLHLj!";
+
+      $('#loginButton').click(function () {
+        if ($('#password').val() === password) {
+          $('#login').hide();
+          $('#content').show();
+          loadPersons();
+        } else {
+          alert('Falsches Passwort');
+        }
+      });
+
+      $('#addPersonButton').click(function () {
+        clearForm();
+        $('#personModalLabel').text('Person hinzufügen');
+        $('#personModal').modal('show');
+      });
+
+      $('#personForm').submit(async function (event) {
+        event.preventDefault();
+        const personId = $('#personId').val();
+        const personData = getFormData();
+
+        if ($('#personImage').prop('files')[0]) {
+          try {
+            const imageURL = await uploadImage($('#personImage').prop('files')[0]);
+            personData.imageURL = imageURL;
+          } catch (error) {
+            console.error('Fehler beim Hochladen des Bildes:', error);
+          }
+        }
+
+        if (personId) {
+          updatePerson(personId, personData);
+        } else {
+          addPerson(personData);
+        }
+        $('#personModal').modal('hide');
+      });
+
+      $('#geschlecht').change(function () {
+        const geschlecht = $(this).val();
+        generateAdditionalFields(geschlecht);
+      });
+
+      $('#crushBeziehung').change(function () {
+        const value = $(this).val();
+        if (value) {
+          $('#crushBeziehungFields').removeClass('hidden');
+        } else {
+          $('#crushBeziehungFields').addClass('hidden');
+        }
+      });
+
+      $('#personImage').change(function () {
+        const file = this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            $('#imagePreview').html(`<img src="${e.target.result}" class="card-img" alt="Bildvorschau">`);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          $('#imagePreview').html('');
+        }
+      });
+
+      function getFormData() {
+        const formData = {
+          vorname: $('#vorname').val(),
+          nachname: $('#nachname').val(),
+          alter: $('#alter').val(),
+          geschlecht: $('#geschlecht').val(),
+          crushBeziehung: $('#crushBeziehung').val(),
+          crushBeziehungAlt: $('#crushBeziehungAlt').val(),
+          crushBeziehungAktuell: $('#crushBeziehungAktuell').val(),
+          pubertät: $('#pubertät').val(),
+          aussehen: $('#aussehen').val(),
+          allgemeineStatur: $('#allgemeineStatur').val(),
+          sixpack: $('#sixpack').val(),
+          muskeln: $('#muskeln').val(),
+          jungfrau: $('#jungfrau').val(),
+          imageURL: $('#imagePreview img').attr('src') || '' // Füge URL des Bildes hinzu
+        };
+        if (formData.geschlecht === 'weiblich') {
+          formData.busengroesse = $('#busengroesse').val();
+          formData.busenbetont = $('#busenbetont').val();
+          formData.vaginaBehaart = $('#vaginaBehaart').val();
+          formData.hinterteil = $('#hinterteil').val();
+        } else if (formData.geschlecht === 'männlich') {
+          formData.penislänge = $('#penislaenge').val();
+          formData.penisbehaarung = $('#penisbehaarung').val();
+          formData.hinterteil = $('#hinterteil').val();
+        }
+        return formData;
+      }
+
+      function generateAdditionalFields(geschlecht) {
+        let fields = '';
+        if (geschlecht === 'weiblich') {
+          fields += `
+            <div class="mb-3">
+              <label for="busengroesse" class="form-label">Busengröße</label>
+              <input type="text" class="form-control" id="busengroesse">
+            </div>
+            <div class="mb-3">
+              <label for="busenbetont" class="form-label">Busenbetont</label>
+              <select class="form-control" id="busenbetont">
+                <option value="ja">Ja</option>
+                <option value="nein">Nein</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="vaginaBehaart" class="form-label">Vagina Behaart</label>
+              <input type="text" class="form-control" id="vaginaBehaart">
+            </div>
+            <div class="mb-3">
+              <label for="hinterteil" class="form-label">Hinterteil</label>
+              <input type="text" class="form-control" id="hinterteil">
+            </div>`;
+        } else if (geschlecht === 'männlich') {
+          fields += `
+            <div class="mb-3">
+              <label for="penislaenge" class="form-label">Penis Länge</label>
+              <input type="text" class="form-control" id="penislaenge">
+            </div>
+            <div class="mb-3">
+              <label for="penisbehaarung" class="form-label">Penis Behaarung</label>
+              <input type="text" class="form-control" id="penisbehaarung">
+            </div>
+            <div class="mb-3">
+              <label for="hinterteil" class="form-label">Hinterteil</label>
+              <input type="text" class="form-control" id="hinterteil">
+            </div>`;
+        }
+        fields += `
+          <div class="mb-3">
+            <label for="pubertät" class="form-label">Pubertät</label>
+            <input type="text" class="form-control" id="pubertät">
+          </div>
+          <div class="mb-3">
+            <label for="aussehen" class="form-label">Aussehen</label>
+            <input type="text" class="form-control" id="aussehen">
+          </div>
+          <div class="mb-3">
+            <label for="allgemeineStatur" class="form-label">Allgemeine Statur</label>
+            <input type="text" class="form-control" id="allgemeineStatur">
+          </div>
+          <div class="mb-3">
+            <label for="sixpack" class="form-label">Sixpack</label>
+            <input type="text" class="form-control" id="sixpack">
+          </div>
+          <div class="mb-3">
+            <label for="muskeln" class="form-label">Muskeln</label>
+            <input type="text" class="form-control" id="muskeln">
+          </div>
+          <div class="mb-3">
+            <label for="jungfrau" class="form-label">Jungfrau</label>
+            <select class="form-control" id="jungfrau">
+              <option value="ja">Ja</option>
+              <option value="nein">Nein</option>
+            </select>
+          </div>`;
+        $('#additionalFields').html(fields);
+      }
+
+      function clearForm() {
+        $('#personId').val('');
+        $('#vorname').val('');
+        $('#nachname').val('');
+        $('#alter').val('');
+        $('#geschlecht').val('');
+        $('#crushBeziehung').val('');
+        $('#crushBeziehungAlt').val('');
+        $('#crushBeziehungAktuell').val('');
+        $('#additionalFields').html('');
+        $('#crushBeziehungFields').addClass('hidden');
+        $('#personImage').val('');
+        $('#imagePreview').html('');
+      }
+
+      function loadPersons() {
+        firebase.database().ref('persons').on('value', (snapshot) => {
+          const persons = snapshot.val();
+          let personsList = '';
+          for (let id in persons) {
+            personsList += `
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h5 class="card-title">${persons[id].vorname} ${persons[id].nachname}</h5>
+                  <p class="card-text">Alter: ${persons[id].alter}</p>
+                  <p class="card-text">Geschlecht: ${persons[id].geschlecht}</p>
+                  <p class="card-text">Crush/Beziehung: ${persons[id].crushBeziehung}</p>
+                  <p class="card-text">Crush Alt: ${persons[id].crushBeziehungAlt}</p>
+                  <p class="card-text">Crush Aktuell: ${persons[id].crushBeziehungAktuell}</p>
+                  ${persons[id].imageURL ? `<img src="${persons[id].imageURL}" class="card-img" alt="Personenbild">` : ''}
+                  <button class="btn btn-primary" onclick="editPerson('${id}')">Bearbeiten</button>
+                  <button class="btn btn-danger" onclick="deletePerson('${id}')">Löschen</button>
+                </div>
+              </div>`;
+          }
+          $('#personsList').html(personsList);
+        });
+      }
+
+      async function uploadImage(file) {
+        const storageRef = firebase.storage().ref();
+        const imageRef = storageRef.child(`images/${Date.now()}_${file.name}`);
+        await imageRef.put(file);
+        return imageRef.getDownloadURL();
+      }
+
+      function addPerson(personData) {
+        const newPersonKey = firebase.database().ref().child('persons').push().key;
+        const updates = {};
+        updates['/persons/' + newPersonKey] = personData;
+        return firebase.database().ref().update(updates);
+      }
+
+      function updatePerson(personId, personData) {
+        const updates = {};
+        updates['/persons/' + personId] = personData;
+        return firebase.database().ref().update(updates);
+      }
+
+      window.editPerson = function (personId) {
+        firebase.database().ref('persons/' + personId).once('value').then((snapshot) => {
+          const person = snapshot.val();
+          $('#personId').val(personId);
+          $('#vorname').val(person.vorname);
+          $('#nachname').val(person.nachname);
+          $('#alter').val(person.alter);
+          $('#geschlecht').val(person.geschlecht);
+          $('#crushBeziehung').val(person.crushBeziehung);
+          $('#crushBeziehungAlt').val(person.crushBeziehungAlt);
+          $('#crushBeziehungAktuell').val(person.crushBeziehungAktuell);
+          generateAdditionalFields(person.geschlecht);
+          if (person.imageURL) {
+            $('#imagePreview').html(`<img src="${person.imageURL}" class="card-img" alt="Bildvorschau">`);
+          }
+          $('#personModalLabel').text('Person bearbeiten');
+          $('#personModal').modal('show');
+        });
+      }
+
+      window.deletePerson = function (personId) {
+        if (confirm('Möchten Sie diese Person wirklich löschen?')) {
+          firebase.database().ref('persons/' + personId).remove();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

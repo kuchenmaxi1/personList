@@ -320,7 +320,7 @@
               </select>
             </div>
             <div id="mitWemField" class="form-section hidden">
-              <label for="mitWem" class="form-label">Mit wem</label>
+              <label for="mitWem" class="form-label">Mit wem:</label>
               <input type="text" class="form-control" id="mitWem">
             </div>`;
         }
@@ -350,7 +350,7 @@
 
         // Dynamisches Feld „mit wem“ ein- oder ausblenden
         $('#jungfrau').change(function () {
-          if ($(this).val() === 'ja') {
+          if ($(this).val() === 'nein') {
             $('#mitWemField').removeClass('hidden');
           } else {
             $('#mitWemField').addClass('hidden');

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Datenbank herunterladen</title>
+</head>
+<body>
+    <h1>Firebase Datenbank herunterladen</h1>
+    <button id="downloadButton">Daten herunterladen</button>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // Firebase Konfiguration
+ var firebaseConfig = {
+  apiKey: "AIzaSyCFAlpxUK26XJqZ86kBYhofJlapxh6Ajds",
+  authDomain: "maxrat-5d14a.firebaseapp.com",
+  databaseURL: "https://maxrat-5d14a-default-rtdb.firebaseio.com",
+  projectId: "maxrat-5d14a",
+  storageBucket: "maxrat-5d14a.appspot.com",
+  messagingSenderId: "908892453787",
+  appId: "1:908892453787:web:abe94d1faea8b80ef1bf3e",
+  measurementId: "G-E9BP785SF5"
+};
+
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+
+        // Datenbank-Referenz
+        var database = firebase.database();
+
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            database.ref('/').once('value').then(function(snapshot) {
+                var data = snapshot.val();
+                var json = JSON.stringify(data, null, 2);
+                download(json, 'firebase-datenbank.json', 'application/json');
+            });
+        });
+
+        function download(content, fileName, contentType) {
+            var a = document.createElement("a");
+            var file = new Blob([content], { type: contentType });
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+        }
+    </script>
+</body>
+</html>

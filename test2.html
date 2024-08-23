@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personendatenbank</title>
+    <style>
+        body {
+            background-color: #f0f8ff;
+            color: #333;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        h1 {
+            color: #007bff;
+        }
+        .btn {
+            margin-top: 10px;
+        }
+        #login {
+            margin-top: 50px;
+        }
+        .modal-header {
+            background-color: #007bff;
+            color: white;
+        }
+        .modal-body {
+            background-color: #e7f0fa;
+        }
+        .search-result {
+            margin-top: 20px;
+        }
+        .incomplete {
+            background-color: #ffdddd;
+        }
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            background-color: #007bff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+        .step-line {
+            width: 100%;
+            height: 4px;
+            background-color: #007bff;
+            margin: 0 10px;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Personendatenbank</h1>
+        <div id="login" class="text-center">
+            <h2>Login</h2>
+            <input type="password" id="password" placeholder="Password">
+            <button id="loginButton" class="btn btn-primary">Login</button>
+        </div>
+        <div id="content" style="display:none;">
+            <div class="text-center">
+                <button id="addPersonButton" class="btn btn-success">Person hinzufügen</button>
+                <input type="text" id="searchInput" placeholder="Suche nach Namen" class="form-control mt-2">
+                <button id="searchButton" class="btn btn-info mt-2">Suchen</button>
+            </div>
+            <div id="searchResults" class="search-result"></div>
+            <div id="personsList" class="mt-4"></div>
+        </div>
+    </div>
+
+    <!-- Modal für Person hinzufügen/bearbeiten -->
+    <div class="modal fade" id="personModal" tabindex="-1" aria-labelledby="personModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg"> <!-- Breiteres Modal -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="personModalLabel">Person hinzufügen/bearbeiten</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="personForm">
+                        <input type="hidden" id="personId">
+                        <div class="mb-3">
+                            <label for="vorname" class="form-label">Vorname</label>
+                            <input type="text" class="form-control" id="vorname" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nachname" class="form-label">Nachname</label>
+                            <input type="text" class="form-control" id="nachname" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="alter" class="form-label">Alter</label>
+                            <input type="number" class="form-control" id="alter" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="geschlecht" class="form-label">Geschlecht</label>
+                            <select class="form-control" id="geschlecht" required>
+                                <option value="">Wählen...</option>
+                                <option value="männlich">Männlich</option>
+                                <option value="weiblich">Weiblich</option>
+                            </select>
+                        </div>
+                        <!-- Dynamische Felder je nach Geschlecht -->
+                        <div id="additionalFields"></div>
+                        <div class="mb-3">
+                            <label for="crushBeziehung" class="form-label">Crush/Beziehung</label>
+                            <input type="text" class="form-control" id="crushBeziehung">
+                            <button type="button" id="addRelationshipButton" class="btn btn-secondary mt-2">Beziehung hinzufügen</button>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="tags" placeholder="Komma-getrennte Tags">
+                        </div>
+                        <div class="mb-3">
+                            <label for="media" class="form-label">Medien hinzufügen</label>
+                            <input type="file" id="media" class="form-control" multiple>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="incomplete">
+                            <label class="form-check-label" for="incomplete">Als unvollständig markieren</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Speichern</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal zur Auswahl der Beziehung -->
+    <div class="modal fade" id="relationshipModal" tabindex="-1" aria-labelledby="relationshipModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="relationshipModalLabel">Beziehung hinzufügen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="relationshipStep1" class="step-content">
+                        <!-- Liste aller Personen -->
+                        <h6>Wählen Sie eine Person:</h6>
+                        <div id="personsListForRelationship"></div>
+                    </div>
+                    <div id="relationshipStep2" class="step-content" style="display: none;">
+                        <!-- Art der Beziehung -->
+                        <h6>Art der Beziehung:</h6>
+                        <select id="relationshipType" class="form-control">
+                            <option value="vermuteteBeziehung">Vermutete Beziehung</option>
+                            <option value="vermuteterCrush">Vermuteter Crush</option>
+                            <option value="crushBestaetigt">Crush (bestätigt)</option>
+                            <option value="beziehungBestaetigt">Beziehung (bestätigt)</option>
+                        </select>
+                    </div>
+                    <div id="relationshipStep3" class="step-content" style="display: none;">
+                        <!-- Wahrscheinlichkeit, dass es passt -->
+                        <h6>Wahrscheinlichkeit, dass es passt (%):</h6>
+                        <input type="number" id="matchProbabilityStep3" class="form-control" min="0" max="100">
+                    </div>
+                    <div id="relationshipStep4" class="step-content" style="display: none;">
+                        <!-- Intimer Körperkontakt -->
+                        <h6>Gab es bereits intimen Körperkontakt?</h6>
+                        <select id="intimateContact" class="form-control">
+                            <option value="jaUnbestaetigt">Ja (unbestätigt)</option>
+                            <option value="neinBestaetigt">Nein (bestätigt)</option>
+                            <option value="jaBestaetigt">Ja (bestätigt)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- Schrittweise Navigation -->
+                    <button type="button" id="prevStepButton" class="btn btn-secondary">Zurück</button>
+                    <button type="button" id="nextStepButton" class="btn btn-primary">Weiter</button>
+                    <button type="button" id="saveRelationshipButton" class="btn btn-success" style="display: none;">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase initialisieren
+        var firebaseConfig = {
+            apiKey: "AIzaSyAs3ugzFRBAcwHRAqF-71KJJ6f4h8Nn6H4",
+            authDomain: "personlist-d93b1.firebaseapp.com",
+            databaseURL: "https://personlist-d93b1-default-rtdb.firebaseio.com/", // Hinzugefügt
+            projectId: "personlist-d93b1",
+            storageBucket: "personlist-d93b1.appspot.com",
+            messagingSenderId: "200202852859",
+            appId: "1:200202852859:web:2d1bff1eaca2dfa853d35e"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        $(document).ready(function() {
+            // Login Funktionalität
+            $('#loginButton').click(function() {
+                var password = $('#password').val();
+                if(password === 'deinPasswort') {
+                    $('#login').hide();
+                    $('#content').show();
+                    loadPersons();
+                } else {
+                    alert('Falsches Passwort!');
+                }
+            });
+
+            // Personen hinzufügen Button Click Event
+            $('#addPersonButton').click(function() {
+                $('#personForm')[0].reset();
+                $('#personId').val('');
+                $('#additionalFields').html('');
+                $('#personModalLabel').text('Person hinzufügen');
+                $('#personModal').modal('show');
+            });
+
+            // Dynamische Felder basierend auf Geschlecht
+            $('#geschlecht').change(function() {
+                var gender = $(this).val();
+                var additionalFields = $('#additionalFields');
+                additionalFields.html('');
+                if (gender === 'männlich') {
+                    additionalFields.append('<div class="mb-3"><label for="koerpergroesse" class="form-label">Körpergröße (cm)</label><input type="number" class="form-control" id="koerpergroesse"></div>');
+                    additionalFields.append('<div class="mb-3"><label for="bart" class="form-label">Bart?</label><select class="form-control" id="bart"><option value="ja">Ja</option><option value="nein">Nein</option></select></div>');
+                } else if (gender === 'weiblich') {
+                    additionalFields.append('<div class="mb-3"><label for="kleidungsstil" class="form-label">Kleidungsstil</label><input type="text" class="form-control" id="kleidungsstil"></div>');
+                    additionalFields.append('<div class="mb-3"><label for="haarlaenge" class="form-label">Haarlänge</label><input type="text" class="form-control" id="haarlaenge"></div>');
+                }
+            });
+
+            // Person speichern
+            $('#personForm').submit(function(e) {
+                e.preventDefault();
+                var personId = $('#personId').val();
+                var vorname = $('#vorname').val();
+                var nachname = $('#nachname').val();
+                var alter = $('#alter').val();
+                var geschlecht = $('#geschlecht').val();
+                var crushBeziehung = $('#crushBeziehung').val();
+                var tags = $('#tags').val();
+                var incomplete = $('#incomplete').is(':checked');
+                var additionalFields = {};
+                if (geschlecht === 'männlich') {
+                    additionalFields.koerpergroesse = $('#koerpergroesse').val();
+                    additionalFields.bart = $('#bart').val();
+                } else if (geschlecht === 'weiblich') {
+                    additionalFields.kleidungsstil = $('#kleidungsstil').val();
+                    additionalFields.haarlaenge = $('#haarlaenge').val();
+                }
+
+                var personData = {
+                    vorname: vorname,
+                    nachname: nachname,
+                    alter: alter,
+                    geschlecht: geschlecht,
+                    crushBeziehung: crushBeziehung,
+                    tags: tags,
+                    incomplete: incomplete,
+                    additionalFields: additionalFields
+                };
+
+                if (personId) {
+                    firebase.database().ref('persons/' + personId).update(personData);
+                } else {
+                    var newPersonRef = firebase.database().ref('persons').push();
+                    newPersonRef.set(personData);
+                }
+
+                $('#personModal').modal('hide');
+                loadPersons();
+            });
+
+            // Personen laden und anzeigen
+            function loadPersons() {
+                firebase.database().ref('persons').once('value', function(snapshot) {
+                    var personsList = $('#personsList');
+                    personsList.html('');
+                    snapshot.forEach(function(childSnapshot) {
+                        var person = childSnapshot.val();
+                        personsList.append('<div class="card mt-3"><div class="card-body"><h5 class="card-title">' + person.vorname + ' ' + person.nachname + '</h5><p class="card-text">Alter: ' + person.alter + '<br>Geschlecht: ' + person.geschlecht + '</p><button class="btn btn-primary editPersonButton" data-id="' + childSnapshot.key + '">Bearbeiten</button><button class="btn btn-danger deletePersonButton" data-id="' + childSnapshot.key + '">Löschen</button></div></div>');
+                    });
+
+                    // Bearbeiten Button Click Event
+                    $('.editPersonButton').click(function() {
+                        var personId = $(this).data('id');
+                        firebase.database().ref('persons/' + personId).once('value', function(snapshot) {
+                            var person = snapshot.val();
+                            $('#personId').val(personId);
+                            $('#vorname').val(person.vorname);
+                            $('#nachname').val(person.nachname);
+                            $('#alter').val(person.alter);
+                            $('#geschlecht').val(person.geschlecht);
+                            $('#crushBeziehung').val(person.crushBeziehung);
+                            $('#tags').val(person.tags);
+                            $('#incomplete').prop('checked', person.incomplete);
+
+                            var additionalFields = $('#additionalFields');
+                            additionalFields.html('');
+                            if (person.geschlecht === 'männlich') {
+                                additionalFields.append('<div class="mb-3"><label for="koerpergroesse" class="form-label">Körpergröße (cm)</label><input type="number" class="form-control" id="koerpergroesse" value="' + person.additionalFields.koerpergroesse + '"></div>');
+                                additionalFields.append('<div class="mb-3"><label for="bart" class="form-label">Bart?</label><select class="form-control" id="bart"><option value="ja"' + (person.additionalFields.bart === 'ja' ? ' selected' : '') + '>Ja</option><option value="nein"' + (person.additionalFields.bart === 'nein' ? ' selected' : '') + '>Nein</option></select></div>');
+                            } else if (person.geschlecht === 'weiblich') {
+                                additionalFields.append('<div class="mb-3"><label for="kleidungsstil" class="form-label">Kleidungsstil</label><input type="text" class="form-control" id="kleidungsstil" value="' + person.additionalFields.kleidungsstil + '"></div>');
+                                additionalFields.append('<div class="mb-3"><label for="haarlaenge" class="form-label">Haarlänge</label><input type="text" class="form-control" id="haarlaenge" value="' + person.additionalFields.haarlaenge + '"></div>');
+                            }
+
+                            $('#personModalLabel').text('Person bearbeiten');
+                            $('#personModal').modal('show');
+                        });
+                    });
+
+                    // Löschen Button Click Event
+                    $('.deletePersonButton').click(function() {
+                        var personId = $(this).data('id');
+                        if (confirm('Möchten Sie diese Person wirklich löschen?')) {
+                            firebase.database().ref('persons/' + personId).remove();
+                            loadPersons();
+                        }
+                    });
+                });
+            }
+
+            // Beziehung hinzufügen
+            $('#addRelationshipButton').click(function() {
+                loadPersonsForRelationship();
+                $('#relationshipStep1').show();
+                $('#relationshipStep2').hide();
+                $('#relationshipStep3').hide();
+                $('#relationshipStep4').hide();
+                $('#prevStepButton').hide();
+                $('#nextStepButton').show();
+                $('#saveRelationshipButton').hide();
+                $('#relationshipModal').modal('show');
+            });
+
+            // Personenliste für Beziehung laden
+            function loadPersonsForRelationship() {
+                firebase.database().ref('persons').once('value', function(snapshot) {
+                    var personsListForRelationship = $('#personsListForRelationship');
+                    personsListForRelationship.html('');
+                    snapshot.forEach(function(childSnapshot) {
+                        var person = childSnapshot.val();
+                        personsListForRelationship.append('<div class="form-check"><input class="form-check-input" type="radio" name="relationshipPerson" value="' + childSnapshot.key + '" id="person' + childSnapshot.key + '"><label class="form-check-label" for="person' + childSnapshot.key + '">' + person.vorname + ' ' + person.nachname + '</label></div>');
+                    });
+                });
+            }
+
+            // Beziehung Prozess: Weiter-Button
+            $('#nextStepButton').click(function() {
+                var currentStep = $('#relationshipModal .modal-body > div:visible');
+                var nextStep = currentStep.next('div');
+                if (nextStep.length > 0) {
+                    currentStep.hide();
+                    nextStep.show();
+                    $('#prevStepButton').show();
+                    if (nextStep.next('div').length === 0) {
+                        $('#nextStepButton').hide();
+                        $('#saveRelationshipButton').show();
+                    }
+                }
+            });
+
+            // Beziehung Prozess: Zurück-Button
+            $('#prevStepButton').click(function() {
+                var currentStep = $('#relationshipModal .modal-body > div:visible');
+                var prevStep = currentStep.prev('div');
+                if (prevStep.length > 0) {
+                    currentStep.hide();
+                    prevStep.show();
+                    $('#nextStepButton').show();
+                    $('#saveRelationshipButton').hide();
+                    if (prevStep.prev('div').length === 0) {
+                        $('#prevStepButton').hide();
+                    }
+                }
+            });
+
+            // Beziehung speichern
+            $('#saveRelationshipButton').click(function() {
+                var selectedPersonId = $('input[name="relationshipPerson"]:checked').val();
+                var relationshipType = $('#relationshipType').val();
+                var crushBestaetigt = $('#crushBestaetigt').val();
+
+                if (selectedPersonId && relationshipType) {
+                    var relationshipData = {
+                        personId: selectedPersonId,
+                        relationshipType: relationshipType,
+                        crushBestaetigt: crushBestaetigt
+                    };
+                    firebase.database().ref('relationships').push(relationshipData);
+                    $('#relationshipModal').modal('hide');
+                } else {
+                    alert('Bitte wählen Sie eine Person und einen Beziehungstyp aus.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

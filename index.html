@@ -1,331 +1,492 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personendatenbank</title>
-  <style>
-body {
-  background-color: #f0f8ff;
-  color: #333;
-}
-.container {
-  margin-top: 50px;
-}
-h1 {
-  color: #007bff;
-}
-.btn {
-  margin-top: 10px;
-}
-#login {
-  margin-top: 50px;
-}
-.modal-header {
-  background-color: #007bff;
-  color: white;
-}
-.modal-body {
-  background-color: #e7f0fa;
-}
-</style>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-  <div class="container">
-    <h1 class="text-center">Personendatenbank</h1>
-    <div id="login" class="text-center">
-      <h2>Login</h2>
-      <input type="password" id="password" placeholder="Password">
-      <button id="loginButton" class="btn btn-primary">Login</button>
-    </div>
-    <div id="content" style="display:none;">
-      <div class="text-center">
-        <button id="addPersonButton" class="btn btn-success">Person hinzufügen</button>
-        <input type="text" id="searchInput" placeholder="Suche nach Namen" class="form-control mt-2">
-      </div>
-      <div id="personsList" class="mt-4"></div>
-    </div>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personendatenbank</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-  <!-- Modal für Person hinzufügen/bearbeiten -->
-  <div class="modal fade" id="personModal" tabindex="-1" aria-labelledby="personModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg"> <!-- Breiteres Modal -->
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="personModalLabel">Person hinzufügen/bearbeiten</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="persons/style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center">Personendatenbank</h1>
+      <div id="login" class="text-center">
+        <h2>Login</h2>
+        <input
+          type="password"
+          id="password"
+          placeholder="Bitte gebe das richtige Passwort ein!"
+          class="form-control"
+        />
+        <button id="loginButton" class="btn btn-primary">Login</button>
+        <div id="error-message" class="hidden">Passwort falsch!</div>
+      </div>
+      <div id="content" style="display: none">
+        <div class="text-center">
+          <button id="addPersonButton" class="btn btn-success">
+            Person hinzufügen
+          </button>
+          <button onclick="gotoCrush()" class="btn btn-success">
+            Random Crush Generator
+          </button>
+          <button onclick="gotoChat()" class="btn btn-success">
+            Chat Dantenbank
+          </button>
+          <button onclick="logout()" style="background-color: #f44336; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 5px;">
+            <i class="fa fa-sign-out"></i> Logout
+          </button>
+
+          
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Gebe einen Suchbegriff ein!"
+            class="form-control mt-2"
+          />
         </div>
-        <div class="modal-body">
-          <form id="personForm">
-            <input type="hidden" id="personId">
-            <div class="mb-3">
-              <label for="vorname" class="form-label">Vorname</label>
-              <input type="text" class="form-control" id="vorname" required>
-            </div>
-            <div class="mb-3">
-              <label for="nachname" class="form-label">Nachname</label>
-              <input type="text" class="form-control" id="nachname" required>
-            </div>
-            <div class="mb-3">
-              <label for="alter" class="form-label">Alter</label>
-              <input type="number" class="form-control" id="alter" required>
-            </div>
-            <div class="mb-3">
-              <label for="geschlecht" class="form-label">Geschlecht</label>
-              <select class="form-control" id="geschlecht" required>
-                <option value="">Wählen...</option>
-                <option value="männlich">Männlich</option>
-                <option value="weiblich">Weiblich</option>
-              </select>
-            </div>
-            <!-- Dynamische Felder je nach Geschlecht -->
-            <div id="additionalFields"></div>
-            <button type="submit" class="btn btn-primary">Speichern</button>
-          </form>
-        </div>
+        <div id="personsList" class="mt-4"></div>
       </div>
     </div>
-  </div>
 
-  <script>
-  const firebaseConfig = {
-  apiKey: "AIzaSyAs3ugzFRBAcwHRAqF-71KJJ6f4h8Nn6H4",
-  authDomain: "personlist-d93b1.firebaseapp.com",
-  projectId: "personlist-d93b1",
-  storageBucket: "personlist-d93b1.appspot.com",
-  messagingSenderId: "200202852859",
-  appId: "1:200202852859:web:2d1bff1eaca2dfa853d35e"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-
-$(document).ready(function () {
-  const password = "MNLHLj!";
-
-  $('#loginButton').click(function () {
-    if ($('#password').val() === password) {
-      $('#login').hide();
-      $('#content').show();
-      loadPersons();
-    } else {
-      alert('Falsches Passwort');
-    }
-  });
-
-  $('#addPersonButton').click(function () {
-    clearForm();
-    $('#personModalLabel').text('Person hinzufügen');
-    $('#personModal').modal('show');
-  });
-
-  $('#personForm').submit(function (event) {
-    event.preventDefault();
-    const personId = $('#personId').val();
-    const personData = getFormData();
-    if (personId) {
-      updatePerson(personId, personData);
-    } else {
-      addPerson(personData);
-    }
-    $('#personModal').modal('hide');
-  });
-
-  $('#geschlecht').change(function () {
-    const geschlecht = $(this).val();
-    generateAdditionalFields(geschlecht);
-  });
-
-  function getFormData() {
-    const formData = {
-      vorname: $('#vorname').val(),
-      nachname: $('#nachname').val(),
-      alter: $('#alter').val(),
-      geschlecht: $('#geschlecht').val(),
-      pubertät: $('#pubertät').val(),
-      aussehen: $('#aussehen').val(),
-      allgemeineStatur: $('#allgemeineStatur').val(),
-      sixpack: $('#sixpack').val(),
-      muskeln: $('#muskeln').val(),
-      jungfrau: $('#jungfrau').val(),
-      crushBeziehung: $('#crushBeziehung').val(),
-      sexuelleVorlieben: $('#sexuelleVorlieben').val(),
-    };
-    if (formData.geschlecht === 'weiblich') {
-      formData.busengroesse = $('#busengroesse').val();
-      formData.busenbetont = $('#busenbetont').val();
-      formData.vaginaBehaart = $('#vaginaBehaart').val();
-      formData.hinterteil = $('#hinterteil').val();
-    } else if (formData.geschlecht === 'männlich') {
-      formData.penislänge = $('#penislaenge').val();
-      formData.penisbehaarung = $('#penisbehaarung').val();
-      formData.hinterteil = $('#hinterteil').val();
-    }
-    return formData;
-  }
-
-  function generateAdditionalFields(geschlecht) {
-    let fields = '';
-    if (geschlecht === 'weiblich') {
-      fields += `
-        <div class="mb-3">
-          <label for="busengroesse" class="form-label">Busengröße</label>
-          <input type="text" class="form-control" id="busengroesse">
-        </div>
-        <div class="mb-3">
-          <label for="busenbetont" class="form-label">Busenbetont</label>
-          <select class="form-control" id="busenbetont">
-            <option value="ja">Ja</option>
-            <option value="nein">Nein</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label for="vaginaBehaart" class="form-label">Vagina Behaart</label>
-          <input type="text" class="form-control" id="vaginaBehaart">
-        </div>
-        <div class="mb-3">
-          <label for="hinterteil" class="form-label">Hinterteil</label>
-          <input type="text" class="form-control" id="hinterteil">
-        </div>`;
-    } else if (geschlecht === 'männlich') {
-      fields += `
-        <div class="mb-3">
-          <label for="penislaenge" class="form-label">Penis Länge</label>
-          <input type="text" class="form-control" id="penislaenge">
-        </div>
-        <div class="mb-3">
-          <label for="penisbehaarung" class="form-label">Penis Behaarung</label>
-          <input type="text" class="form-control" id="penisbehaarung">
-        </div>
-        <div class="mb-3">
-          <label for="hinterteil" class="form-label">Hinterteil</label>
-          <input type="text" class="form-control" id="hinterteil">
-        </div>`;
-    }
-    fields += `
-      <div class="mb-3">
-        <label for="pubertät" class="form-label">Pubertät</label>
-        <input type="text" class="form-control" id="pubertät">
-      </div>
-      <div class="mb-3">
-        <label for="aussehen" class="form-label">Aussehen</label>
-        <input type="text" class="form-control" id="aussehen">
-      </div>
-      <div class="mb-3">
-        <label for="allgemeineStatur" class="form-label">Allgemeine Statur</label>
-        <input type="text" class="form-control" id="allgemeineStatur">
-      </div>
-      <div class="mb-3">
-        <label for="sixpack" class="form-label">Sixpack</label>
-        <input type="text" class="form-control" id="sixpack">
-      </div>
-      <div class="mb-3">
-        <label for="muskeln" class="form-label">Muskeln</label>
-        <input type="text" class="form-control" id="muskeln">
-      </div>
-      <div class="mb-3">
-        <label for="jungfrau" class="form-label">Jungfrau</label>
-        <select class="form-control" id="jungfrau">
-          <option value="ja">Ja</option>
-          <option value="nein">Nein</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label for="crushBeziehung" class="form-label">Crush/Beziehung</label>
-        <input type="text" class="form-control" id="crushBeziehung">
-      </div>
-      <div class="mb-3">
-        <label for="sexuelleVorlieben" class="form-label">Sexuelle Vorlieben/Präferenzen</label>
-        <input type="text" class="form-control" id="sexuelleVorlieben">
-      </div>`;
-    $('#additionalFields').html(fields);
-  }
-
-  function clearForm() {
-    $('#personId').val('');
-    $('#vorname').val('');
-    $('#nachname').val('');
-    $('#alter').val('');
-    $('#geschlecht').val('');
-    $('#additionalFields').html('');
-  }
-
-  function loadPersons() {
-    firebase.database().ref('persons').on('value', (snapshot) => {
-      const persons = snapshot.val();
-      let personsList = '';
-      for (let id in persons) {
-        personsList += `
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">${persons[id].vorname} ${persons[id].nachname}</h5>
-              <p class="card-text">Alter: ${persons[id].alter}</p>
-              <p class="card-text">Geschlecht: ${persons[id].geschlecht}</p>
-              <button class="btn btn-primary" onclick="editPerson('${id}')">Bearbeiten</button>
-              <button class="btn btn-danger" onclick="deletePerson('${id}')">Löschen</button>
+    <!-- Modal für Person hinzufügen/bearbeiten -->
+  
+      <div
+        class="modal fade"
+        id="personModal"
+        tabindex="-1"
+        aria-labelledby="personModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="personModalLabel">
+                
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
             </div>
-          </div>`;
-      }
-      $('#personsList').html(personsList);
-    });
-  }
-
-  function addPerson(personData) {
-    const newPersonKey = firebase.database().ref().child('persons').push().key;
-    const updates = {};
-    updates['/persons/' + newPersonKey] = personData;
-    return firebase.database().ref().update(updates);
-  }
-
-  function updatePerson(personId, personData) {
-    const updates = {};
-    updates['/persons/' + personId] = personData;
-    return firebase.database().ref().update(updates);
-  }
-
-  window.editPerson = function (personId) {
-    firebase.database().ref('persons/' + personId).once('value').then((snapshot) => {
-      const person = snapshot.val();
-      $('#personId').val(personId);
-      $('#vorname').val(person.vorname);
-      $('#nachname').val(person.nachname);
-      $('#alter').val(person.alter);
-      $('#geschlecht').val(person.geschlecht);
-      generateAdditionalFields(person.geschlecht);
-      if (person.geschlecht === 'weiblich') {
-        $('#busengroesse').val(person.busengroesse);
-        $('#busenbetont').val(person.busenbetont);
-        $('#vaginaBehaart').val(person.vaginaBehaart);
-        $('#hinterteil').val(person.hinterteil);
-      } else if (person.geschlecht === 'männlich') {
-        $('#penislaenge').val(person.penislänge);
-        $('#penisbehaarung').val(person.penisbehaarung);
-        $('#hinterteil').val(person.hinterteil);
-      }
-      $('#pubertät').val(person.pubertät);
-      $('#aussehen').val(person.aussehen);
-      $('#allgemeineStatur').val(person.allgemeineStatur);
-      $('#sixpack').val(person.sixpack);
-      $('#muskeln').val(person.muskeln);
-      $('#jungfrau').val(person.jungfrau);
-      $('#crushBeziehung').val(person.crushBeziehung);
-      $('#sexuelleVorlieben').val(person.sexuelleVorlieben);
-      $('#personModalLabel').text('Person bearbeiten');
-      $('#personModal').modal('show');
-    });
-  }
-
-  window.deletePerson = function (personId) {
-    if (confirm('Möchten Sie diese Person wirklich löschen?')) {
-      firebase.database().ref('persons/' + personId).remove();
-    }
-  }
-});
-  </script>
-</body>
+            <div class="modal-body">
+              <form id="personForm">
+                <input type="hidden" id="personId" />
+                <h4>Pflichtfelder:</h4>
+                <div class="mb-3">
+                  <label for="vorname" class="form-label">Vorname(n):</label>
+                  <input
+                    placeholder="Bitte gebe hier den bzw. die Vornamen ein!"
+                    type="text"
+                    class="form-control"
+                    id="vorname"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="nachname" class="form-label">Nachname:</label>
+                  <input
+                    placeholder="Bitte gebe den Nachnamen der Person ein!"
+                    type="text"
+                    class="form-control"
+                    id="nachname"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="geschlecht" class="form-label">Geschlecht:</label>
+                  <select class="form-control" id="geschlecht" required>
+                    <option value="">Bitte wähle das Geschlecht aus!</option>
+                    <option value="männlich">Männlich</option>
+                    <option value="weiblich">Weiblich</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="alter" class="form-label">Alter:</label>
+                  <input
+                    placeholder="Bitte gebe hier das Alter der Person ein!"
+                    type="number"
+                    class="form-control"
+                    id="alter"
+                    required
+                  />
+                </div>
+                <hr />
+                <!-- Trennunng zwischen Pflicht und Weiteren Feldern -->
+                <h4>Weitere Informationen:</h4>
+                <h5>Geburtsdaten:</h5>
+                <div class="mb-3">
+                  <label for="geburtsdatum" class="form-label"
+                    >Geburtsdatum:</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control"
+                    placeholder="Bitte gebe das Geburtsdatum der Person ein! Wenn es unbekannt ist gebe stattdesen das Jahr ein!"
+                    id="geburtsdatum"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="geburtsjahr" class="form-label"
+                    >Geburtsjahr:</label
+                  >
+                  <input
+                    type="number"
+                    placheholder="Bitte gebe das Geburtsjahr der Person ein!"
+                    class="form-control"
+                    id="geburtsjahr"
+                  />
+                </div>
+                <hr />
+                <h5>Schulische Informationen:</h5>
+                <div class="mb-3">
+                  <label for="schule" class="form-label">Schule:</label>
+                  <input
+                    type="text"
+                    placeholder="Welche Schule besucht die Person? (Bitte vollständigen Namen angeben)"
+                    class="form-control"
+                    id="schule"
+                  />
+                  <div class="mb-3">
+                    <label for="klasse" class="form-label">Klasse:</label>
+                    <input
+                      type="text"
+                      placeholder="Welche Klasse besucht die Person? (Bitte Namen angeben z.b. '7b', '8b' oder 'Q11'.)"
+                      class="form-control"
+                      id="klasse"
+                    />
+                    <hr />
+                    <h5>Adresse(n):</h5>
+                    <div class="mb-3">
+                      <label for="adresse" class="form-label">Adresse:</label>
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier die Adresse ein!"
+                        class="form-control"
+                        id="adresse"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="plz" class="form-label">Postleitzahl:</label>
+                      <input
+                        type="number"
+                        placeholder="Bitte gebe hier die Postleitzahl ein!"
+                        class="form-control"
+                        id="plz"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="gemeindename" class="form-label"
+                        >Stadt:</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier den Stadt bzw. Gemeindenamen ein!"
+                        class="form-control"
+                        id="gemeindename"
+                      />
+                    </div>
+                    <hr />
+                    <h5>Äußerliches:</h5>
+                    <div class="mb-3">
+                      <label for="haarfarbe" class="form-label"
+                        >Haarfarbe:</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Welche Haarfarbe hat die Person?"
+                        class="form-control"
+                        id="haarfarbe"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="haarlaenge" class="form-label"
+                        >Haarlänge (ungefähr):</label
+                      >
+                      <select class="form-control" id="haarlaenge">
+                        <option value="keine Daten">Bitte Auswählen!</option>
+                        <option value="sehr klein">sehr kurz</option>
+                        <option value="klein">kurz</option>
+                        <option value="mittel">mittel</option>
+                        <option value="groß">lang</option>
+                        <option value="sehr groß">sehr lang</option>
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label for="groesse" class="form-label"
+                        >Größe (ungefähr; in cm):</label
+                      >
+                      <input
+                        type="number"
+                        placeholder="Bitte gebe hier die ungefähre Körpergröße der Person in cm ein!"
+                        class="form-control"
+                        id="groesse"
+                      />
+                    </div>
+                    <div onclick="infoalert()" class="mb-3">
+                      <label for="score" class="form-label"
+                        >Score (1-10) Klicken für Infos!</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier den Score der Person ein! Wie gut sieht die Person aus?"
+                        class="form-control"
+                        id="score"
+                        min="1"
+                        max="10"
+                      />
+                    </div>
+                    <hr />
+                    <h4>Intime Informationen:</h4>
+                    <hr />
+                    <div style="display: none" id="weiblich">
+                      <div class="mb-3">
+                        <label for="brustgröße" class="form-label"
+                          >Wie groß sind die Brüste der Person? (für ihr
+                          Alter):</label
+                        >
+                        <select class="form-control" id="brustgröße">
+                          <option value="keine Daten">Bitte Auswählen!</option>
+                          <option value="sehr klein">Sehr klein</option>
+                          <option value="klein">Klein</option>
+                          <option value="mittel">Mittel</option>
+                          <option value="groß">Groß</option>
+                          <option value="sehr groß">Sehr groß</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="busenbetont" class="form-label"
+                          >Trägt die Person Busenbetonte Kleidung?</label
+                        >
+                        <select class="form-control" id="busenbetont">
+                          <option value="keine Daten">Bitte Auswählen!</option>
+                          <option value="nie">nie</option>
+                          <option value="fast nie">fast nie</option>
+                          <option value="gelegentlich">gelegentlich</option>
+                          <option value="manchmal">manchmal</option>
+                          <option value="oft">oft</option>
+                          <option value="fast immer">fast immer</option>
+                          <option value="immer">immer</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="intimbehaarungw" class="form-label"
+                          >Ist die Person an intimen Körperbereichen
+                          behaart?</label
+                        >
+                        <select class="form-control" id="intimbehaarungw">
+                          <option value="keine Daten">Bitte auswählen!</option>
+                          <option value="nein">Nein</option>
+                          <option value="wahrscheinlich nein">
+                            Wahrscheinlich nein
+                          </option>
+                          <option value="eher nein">Eher nein</option>
+                          <option value="mittel">Mittel</option>
+                          <option value="eher ja">Eher ja</option>
+                          <option value="wahrscheinlich ja">
+                            Wahrscheinlich ja
+                          </option>
+                          <option value="ja">Ja</option>
+                        </select>
+                      </div>
+                    </div>
+                    <!-- Anfang männlich | Ende weiblich -->
+                    <div style="display: none" id="männlich">
+                      <div class="mb-3">
+                        <label for="penislänge" class="form-label"
+                          >Penislänge (im steifen Zustand):</label
+                        >
+                        <select class="form-control" id="penislänge">
+                          <option value="keine Daten">Bitte Auswählen!</option>
+                          <option value="sehr klein">Sehr klein</option>
+                          <option value="klein">Klein</option>
+                          <option value="mittel">Mittel</option>
+                          <option value="groß">Groß</option>
+                          <option value="sehr groß">Sehr groß</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="intimbehaarungj" class="form-label"
+                          >Ist die Person an intimen Körperbereichen
+                          behaart?</label
+                        >
+                        <select class="form-control" id="intimbehaarungj">
+                          <option value="keine Daten">Bitte auswählen!</option>
+                          <option value="nein">Nein</option>
+                          <option value="wahrscheinlich nein">
+                            Wahrscheinlich nein
+                          </option>
+                          <option value="eher nein">Eher nein</option>
+                          <option value="mittel">Mittel</option>
+                          <option value="eher ja">Eher ja</option>
+                          <option value="wahrscheinlich ja">
+                            Wahrscheinlich ja
+                          </option>
+                          <option value="ja">Ja</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label for="sixpack" class="form-label"
+                          >Wie ist das Sixpack der Person ausgeprägt?</label
+                        >
+                        <select class="form-control" id="sixpack">
+                          <option value="keine Daten">Bitte auswählen!</option>
+                          <option value="nein">sehr schwach</option>
+                          <option value="schwach">schwach</option>
+                          <option value="eher schwach nein">
+                            eher schwach
+                          </option>
+                          <option value="mäßig">mäßig</option>
+                          <option value="eher stark">eher stark</option>
+                          <option value="stark">stark</option>
+                          <option value="sehr stark">sehr stark</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div id="additionalFields" class="additional-fields"></div>
+                    <hr />
+                    <h5>Selbstbefriedigung:</h5>
+                    <div class="mb-3">
+                      <label for="masturbation" class="form-label"
+                        >Masturbiert die Person?</label
+                      >
+                      <select class="form-control" id="masturbation">
+                        <option value="keine Daten">Bitte auswählen!</option>
+                        <option value="nein">Nein</option>
+                        <option value="wahrscheinlich nein">
+                          Wahrscheinlich nein
+                        </option>
+                        <option value="eher nein">Eher nein</option>
+                        <option value="mittel">Mittel</option>
+                        <option value="eher ja">Eher ja</option>
+                        <option value="wahrscheinlich ja">
+                          Wahrscheinlich ja
+                        </option>
+                        <option value="ja">Ja</option>
+                      </select>
+                    </div>
+                    <hr />
+                    <h5>Crushs bzw. Beziehungen:</h5>
+                    <!-- Felder für Beziehungen -->
+                    <div class="mb-3">
+                      <label for="formerCrush" class="form-label"
+                        >Ehemaliger Crush:</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier den ehemaligen Crush der Person ein!"
+                        class="form-control"
+                        id="formerCrush"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="currentCrush" class="form-label"
+                        >Aktueller Crush:</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier den aktuellen Crush der Person ein!"
+                        class="form-control"
+                        id="currentCrush"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="formerRelation" class="form-label"
+                        >Ehemalige Beziehung:</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier die ehemaligen Beziehungen ein!"
+                        class="form-control"
+                        id="formerRelation"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="currentRelation" class="form-label"
+                        >Aktuelle Beziehung:</label
+                      >
+                      <input
+                        type="text"
+                        placeholder="Bitte gebe hier die aktuelle Beziehungen ein!"
+                        class="form-control"
+                        id="currentRelation"
+                      />
+                    </div>
+                    <hr />
+                    <h5>Sexueller Kontakt:</h5>
+                    <div class="mb-3">
+                      <label for="sex" class="form-label"
+                        >Ist die Person Jungfrau?</label
+                      >
+                      <select class="form-control" id="sex">
+                        <option value="keine Daten">Bitte auswählen!</option>
+                        <option value="nein">Nein</option>
+                        <option value="wahrscheinlich nein">
+                          Wahrscheinlich nein
+                        </option>
+                        <option value="eher nein">Eher nein</option>
+                        <option value="mittel">Mittel</option>
+                        <option value="eher ja">Eher ja</option>
+                        <option value="wahrscheinlich ja">
+                          Wahrscheinlich ja
+                        </option>
+                        <option value="ja">Ja</option>
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label for="mitwem" class="form-label"
+                        >Weitere Informationen:</label
+                      >
+                      <textarea
+                        placeholder="Hier kannst du weitere Informationen zum Thema eingeben. Zum Beispiel ob sie schonmal intimeren Kontakt mit anderen hatte!"
+                        id="mitwem"
+                        class="form-control"
+                        rows="4"
+                      ></textarea>
+                    </div>
+                    <hr />
+                    <h5>Sonstiges:</h5>
+                    <div class="mb-3">
+                      <label for="additionalInfo" class="form-label"
+                        >Zusätzliche Informationen:</label
+                      >
+                      <textarea
+                        placeholder="Hier kannst du weitere Informationen zur Person eingeben. Zum Beispiel ob es irgendwelche Auffäligkeiten im Verhalten gibt!"
+                        id="additionalInfo"
+                        class="form-control"
+                        rows="4"
+                      ></textarea>
+                    </div>
+                    <hr />
+                    <button type="submit" class="btn btn-primary">
+                      Speichern
+                    </button>
+                    <button
+                      type="button"
+                      id="deletePersonButton"
+                      class="btn btn-danger"
+                    >
+                      Person löschen
+                    </button>
+                    <hr />
+                  </div>
+                </div>
+          </div>
+        </div>
+      </div>
+        </div>
+    <script src="persons/script.js"></script>
+        <script src="others/script/go_to.js"></script>
+  </body>
 </html>

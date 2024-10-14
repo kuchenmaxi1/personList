@@ -9,13 +9,75 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+  #error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+  animation: shake 0.5s;
+}
 
+.hidden {
+  display: none;
+}
+
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+body {
+  background-color: #e9ecef;
+  color: #495057;
+}
+.container {
+  margin-top: 50px;
+}
+h1 {
+  color: #0d6efd;
+}
+.btn {
+  margin-top: 10px;
+}
+.modal-header {
+  background-color: #0d6efd;
+  color: white;
+}
+.modal-body {
+  background-color: #f8f9fa;
+}
+.table th,
+.table td {
+  text-align: center;
+}
+.form-label {
+  font-weight: bold;
+}
+.card {
+  margin-bottom: 20px;
+}
+.additional-fields {
+  display: none;
+}
+
+</style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link href="persons/style.css" rel="stylesheet" />
   </head>
   <body>
     <div class="container">
@@ -486,7 +548,220 @@
         </div>
       </div>
         </div>
-    <script src="persons/script.js"></script>
-        <script src="others/script/go_to.js"></script>
+    <script>
+      function infoalert() {
+  alert(
+    "Der Score bewertet das Aussehen der Person. Er kann von 1 sehr schlecht bis 10 sehr gut gehen. Der Score beruht vorallem auf Auftreten, Vorlieben und Entwicklung!"
+  );
+}
+
+// Firebase-Konfiguration
+const firebaseConfig = {
+  apiKey: "AIzaSyAs3ugzFRBAcwHRAqF-71KJJ6f4h8Nn6H4",
+  authDomain: "personlist-d93b1.firebaseapp.com",
+  projectId: "personlist-d93b1",
+  storageBucket: "personlist-d93b1.appspot.com",
+  messagingSenderId: "21221546269",
+  appId: "1:21221546269:web:fcbd9b1e8f3d0d6232b881",
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+var admin = "yes"; // Die Zuweisung hier sollte ein String sein
+$(document).ready(function () {
+  $("#deletePersonButton").click(function () {
+    if (admin === "no") {
+      alert("Du bist nicht dazu berechtigt!");
+    } else {
+      const id = $("#personId").val();
+      if (id) {
+        database.ref("persons/" + id).remove();
+        $("#personModal").modal("hide"); // Schließe das Modal
+        loadPersons();
+      }
+    }
+  });
+
+  $("#loginButton").click(function () {
+    const password = $("#password").val();
+    // Überprüfe das Passwort (hier nur ein Beispiel)
+    if (password === "test") {
+      $("#login").hide();
+      $("#content").show();
+      loadPersons();
+    } else if (password === "Test2") {
+      $("#login").hide();
+      $("#content").show();
+      admin = "no"; // Setze admin auf "no"
+      loadPersons();
+    } else {
+      alert("Falsches Passwort!");
+      falsepassword();
+    }
+  });
+
+  $("#addPersonButton").click(function () {
+    document.getElementById("personModalLabel").innerText = "Neue Person hinzufügen";
+    $("#personModal").modal("show");
+    $("#personForm")[0].reset();
+    $("#additionalFields").empty();
+    $("#personId").val("");
+    $("#deletePersonButton").hide();
+  });
+
+  $("#personForm").submit(function (event) {
+    event.preventDefault(); // Verhindert das Standardverhalten des Formulars
+    if (admin === "no") {
+      alert("Du bist nicht dazu berechtigt!");
+    } else {
+      const id = $("#personId").val();
+      const personData = {
+        vorname: $("#vorname").val(),
+        nachname: $("#nachname").val(),
+        alter: $("#alter").val(),
+        geburtsdatum: $("#geburtsdatum").val(),
+        geburtsjahr: $("#geburtsjahr").val(),
+        adresse: $("#adresse").val(),
+        plz: $("#plz").val(),
+        gemeindename: $("#gemeindename").val(),
+        haarfarbe: $("#haarfarbe").val(),
+        haarlänge: $("#haarlaenge").val(),
+        größe: $("#groesse").val(),
+        score: $("#score").val(),
+        schule: $("#schule").val(),
+        klasse: $("#klasse").val(),
+        geschlecht: $("#geschlecht").val(),
+        masturbation: $("#masturbation").val(),
+        additionalInfo: $("#additionalInfo").val(),
+        formerCrush: $("#formerCrush").val(),
+        currentCrush: $("#currentCrush").val(),
+        formerRelation: $("#formerRelation").val(),
+        currentRelation: $("#currentRelation").val(),
+        sex: $("#sex").val(),
+        mitwem: $("#mitwem").val(),
+        sixpack: $("#sixpack").val(),
+        brustgröße: $("#brustgröße").val(),
+        busenbetont: $("#busenbetont").val(),
+        penislänge: $("#penislänge").val(),
+        intimbehaarungw: $("#intimbehaarungw").val(),
+        intimbehaarungj: $("#intimbehaarungj").val(),
+        link: $("#link").val(),
+      };
+
+      if (id) {
+        database.ref("persons/" + id).set(personData);
+      } else {
+        const newId = database.ref().child("persons").push().key;
+        database.ref("persons/" + newId).set(personData);
+      }
+
+      $("#personModal").modal("hide"); // Schließe das Modal
+      loadPersons(); // Aktualisiere die Liste
+      const search = document.getElementById("searchInput");
+      search.value = "";
+    }
+  });
+});
+
+$("#searchInput").keyup(function () {
+  const searchTerm = $(this).val().toLowerCase();
+  $("#personsList .card").each(function () {
+    const name = $(this).find(".card-title").text().toLowerCase();
+    $(this).toggle(name.includes(searchTerm));
+  });
+});
+
+function loadPersons() {
+  $("#personsList").empty();
+  database.ref("persons").on("value", function (snapshot) {
+    snapshot.forEach(function (childSnapshot) {
+      const person = childSnapshot.val();
+      const card = `
+                      <div class="card">
+                          <div class="card-body">
+                              <h5 class="card-title">${person.vorname} ${person.nachname}</h5>
+                              <p class="card-text">Alter: ${person.alter}</p>
+                              <p class="card-text">ID: ${childSnapshot.key}</p>
+                              <button class="btn btn-primary" onclick="editPerson('${childSnapshot.key}')">Bearbeiten</button>
+                          </div>
+                      </div>
+                  `;
+      $("#personsList").append(card);
+    });
+  });
+}
+
+window.editPerson = function (id) {
+  database
+    .ref("persons/" + id)
+    .once("value")
+    .then(function (snapshot) {
+      const person = snapshot.val();
+      $("#personId").val(id);
+      $("#vorname").val(person.vorname);
+      $("#nachname").val(person.nachname);
+      $("#alter").val(person.alter);
+      $("#geburtsdatum").val(person.geburtsdatum);
+      $("#geburtsjahr").val(person.geburtsjahr);
+      $("#adresse").val(person.adresse);
+      $("#plz").val(person.plz);
+      $("#gemeindename").val(person.gemeindename);
+      $("#haarfarbe").val(person.haarfarbe);
+      $("#haarlänge").val(person.haarlänge);
+      $("#groesse").val(person.größe);
+      $("#score").val(person.score);
+      $("#geschlecht").val(person.geschlecht);
+      $("#masturbation").val(person.masturbation);
+      $("#additionalInfo").val(person.additionalInfo);
+      $("#formerCrush").val(person.formerCrush);
+      $("#currentCrush").val(person.currentCrush);
+      $("#formerRelation").val(person.formerRelation);
+      $("#currentRelation").val(person.currentRelation);
+      $("#sex").val(person.sex);
+      $("#mitwem").val(person.mitwem);
+      $("#brustgröße").val(person.brustgröße);
+      $("#busenbetont").val(person.busenbetont);
+      $("#intimbehaarungj").val(person.intimbehaarungj);
+      $("#penislänge").val(person.penislänge);
+      $("#intimbehaarungw").val(person.intimbehaarungw);
+      $("#sixpack").val(person.sixpack);
+      $("#schule").val(person.schule);
+      $("#klasse").val(person.klasse);
+      $("#link").val(person.link);
+      toggleAdditionalFields(person.geschlecht);
+      $("#deletePersonButton").show();
+      const neueUeberschrift = `${person.vorname} bearbeiten`;
+      document.getElementById("personModalLabel").innerText = neueUeberschrift;
+      $("#personModal").modal("show");
+    });
+};
+
+$("#geschlecht").change(function () {
+  const geschlecht = $(this).val();
+  toggleAdditionalFields(geschlecht);
+});
+
+function toggleAdditionalFields(geschlecht) {
+  $("#additionalFields").empty();
+  if (geschlecht === "weiblich") {
+    document.getElementById("männlich").style.display = "none";
+    document.getElementById("weiblich").style.display = "block";
+  } else if (geschlecht === "männlich") {
+    document.getElementById("weiblich").style.display = "none";
+    document.getElementById("männlich").style.display = "block";
+  }
+  $("#additionalFields").show();
+}
+function falsepassword() {
+  const errorMessage = document.getElementById("error-message");
+  errorMessage.classList.remove("hidden");
+
+  // Animation hinzufügen
+  errorMessage.style.animation = "none"; // Reset animation
+  errorMessage.offsetHeight; // Trigger reflow
+  errorMessage.style.animation = ""; // Start animation
+}
+
+    </script>
+        
   </body>
 </html>
